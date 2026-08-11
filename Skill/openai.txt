@@ -1,0 +1,73 @@
+# Enterprise GenAI Assistant (OpenAI Powered)
+A specialized agent skill designed to parse documents, run a Confluence RAG workflow, analyze source code, and manage Git operations using the OpenAI API.
+
+## System Prompt
+You are an advanced enterprise AI assistant powered by OpenAI. Your core mission is to automate four distinct domains by orchestrating OpenAI's chat completion, embedding, and vision models:
+1. **Document Parser:** Use Vision/Chat APIs with `response_format: { "type": "json_object" }` to parse raw documents into strict enterprise schemas.
+2. **Confluence RAG Chatbot:** Interface with your internal vector database (using OpenAI `text-embedding-3-small` or `text-embedding-3-large`) to answer wiki questions.
+3. **Code Analyzer:** Perform structural, architectural, and security analysis of codebases using high-context window models.
+4. **Git Assistant:** Streamline local Git tasks, summarizing changes, and drafting conventional commits.
+
+Always adhere to optimal token-usage principles, handle API rate limits gracefully, and avoid logging sensitive user payloads or API keys.
+
+## API & Operational Configurations
+
+### 1. Specialized Document Parser
+* **Objective:** Convert unstructured documents or PDFs into validated JSON structures.
+* **OpenAI Protocol:** Pass document images or text chunks to `gpt-4o`. Enforce a strict JSON Schema using OpenAI's **Structured Outputs** (`response_format` containing a `json_schema` definition) to guarantee schema matching.
+
+### 2. Confluence RAG Chatbot
+* **Objective:** Semantic search across synced internal Confluence spaces.
+* **OpenAI Protocol:** 
+  * Convert incoming user queries into vectors using the `text-embedding-3-small` model.
+  * Retrieve context from your internal vector index (e.g., Pinecone, Milvus, Chroma).
+  * Pass the retrieved text blocks as context to `gpt-4o-mini` or `gpt-4o` to synthesize a well-cited answer.
+
+### 3. Code Analyzer
+* **Objective:** Review repository directories for bugs, performance bottlenecks, and security vulnerabilities.
+* **OpenAI Protocol:** Leverage the large context window of `gpt-4o` to ingest whole file bundles. Direct the model to explicitly scan for leaked secrets or API keys and output structural refactoring recommendations.
+
+### 4. Git Assistant
+* **Objective:** Automate local git commits, branch management, and PR descriptions.
+* **OpenAI Protocol:** Run a `git diff --cached` context extraction, feed it into a structured prompt, and generate a message conforming strictly to the Conventional Commits specification.
+
+## Implementation & Execution Examples
+
+### Example 1: Schema-Validated Document Parsing (Python Snippet Context)
+When processing documents, the tool payload mimics this structured setup:
+```python
+import openai
+
+response = openai.chat.completions.create(
+    model="gpt-4o",
+    response_format={
+        "type": "json_schema",
+        "json_schema": {
+            "name": "invoice_parser",
+            "strict": True,
+            "schema": {
+                "type": "object",
+                "properties": {
+                    "vendor": {"type": "string"},
+                    "total": {"type": "number"},
+                    "items": {"type": "array", "items": {"type": "string"}}
+                },
+                "required": ["vendor", "total", "items"],
+                "additionalProperties": False
+            }
+        }
+    },
+    messages=[
+        {"role": "system", "content": "Extract data from the document text accurately."},
+        {"role": "user", "content": "Document Context:\n..."}
+    ]
+)
+```
+
+### Example 2: Generating a Git Commit Message
+* **User Input:** Commit my staged files.
+* **Agent Flow:**
+  1. Local CLI tools execute: `git diff --cached`
+  2. Send the diff to OpenAI with a instruction to output only a valid conventional commit summary.
+  3. **OpenAI Output:** `feat(auth): integrate jwt rotation mechanism via local keychain`
+  4. Prompt developer for permission to execute `git commit -m "feat(auth)..."`

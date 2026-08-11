@@ -1,0 +1,2 @@
+1.	Design a config -driven ETL Tool (High-Level Design with Interfaces & Classes) that can extract data from different JSON formats and map them into a common schema without hardcoding field names.
+
